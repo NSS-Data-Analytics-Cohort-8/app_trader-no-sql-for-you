@@ -76,4 +76,28 @@ FROM play_store_apps AS p
 ORDER BY name;
 --combines both tables, adds for store, 
 
---Kieran
+
+--Kieran--Test
+SELECT name, 'play_store' AS store_name, CAST(rating AS NUMERIC), CAST(price AS MONEY), genres AS genre 
+FROM play_store_apps AS p
+WHERE rating IS NOT NULL
+	AND rating > 4.9
+UNION ALL
+SELECT name, 'app_store' AS store_name, CAST(rating AS NUMERIC), CAST(price AS MONEY), primary_genre AS genre
+FROM app_store_apps AS a
+WHERE rating IS NOT NULL
+	AND rating > 4.9
+GROUP BY name, rating, price, genre
+ORDER BY rating, price;
+
+---AS CTE RUNS....Looks INCORRECT
+WITH app AS (
+SELECT 'app_store' AS store_name,name, rating, CAST(price AS MONEY)
+FROM app_store_apps AS a),
+play AS (
+SELECT 'play_store' AS store_name,name, rating, CAST(price AS MONEY)
+FROM play_store_apps AS p)
+SELECT app.store_name, app.name, app.rating, app.price
+FROM app, play
+WHERE app.name=play.name
+ORDER BY name;
