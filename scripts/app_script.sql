@@ -62,10 +62,39 @@ SELECT * FROM play_store_apps
 
 -- -- b. Develop a Top 10 List of the apps that App Trader should buy.
 
-SELECT name, rating, CAST(price AS MONEY), genres from play_store_apps
-UNION
-SELECT name, rating, CAST(price AS MONEY), primary_genre from app_store_apps
-ORDER BY name
+SELECT name, 'play_store' AS store_name, CAST(rating AS NUMERIC), CAST(price AS MONEY), genres AS genre 
+FROM play_store_apps AS p
+WHERE rating IS NOT NULL
+	AND rating > 4.9
+UNION ALL
+SELECT name, 'app_store' AS store_name, CAST(rating AS NUMERIC), CAST(price AS MONEY), primary_genre AS genre
+FROM app_store_apps AS a
+WHERE rating IS NOT NULL
+	AND rating > 4.9
+GROUP BY name, rating, price, genre
+ORDER BY rating, price;
+
+
+
+SELECT 'app_store' AS store_name,name, rating, CAST(price AS MONEY)
+FROM app_store_apps
+UNION ALL
+SELECT 'play_store' AS store_name,name, rating, CAST(price AS MONEY)
+FROM play_store_apps;
+
+
+
+
+
+SELECT a.name AS apple_name, p.name AS playstore_name, a.rating AS apple_rating, p.rating AS playstore_rating, a.price AS apple_price, p.price AS playstore_price
+FROM app_store_apps AS a, play_store_apps AS p
+WHERE a.name=p.name AND a.rating=p.rating AND CAST(a.price AS MONEY)=CAST(p.price AS MONEY);
+
+
+SELECT DISTINCT(a.name) AS apple_name, DISTINCT(p.name) AS playstore_name, a.rating AS apple_rating, p.rating AS playstore_rating, a.price AS apple_price, p.price AS playstore_price
+FROM app_store_apps AS a, play_store_apps AS p
+WHERE a.name=p.name AND a.rating=p.rating AND CAST(a.price AS MONEY)=CAST(p.price AS MONEY);
+
 
 
 LIMIT 10
