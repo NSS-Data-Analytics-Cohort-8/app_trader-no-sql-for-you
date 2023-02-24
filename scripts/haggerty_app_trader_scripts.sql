@@ -60,7 +60,7 @@ WHERE name IN (SELECT name FROM play_store_apps);
 
 SELECT a.name, p.name, a.rating, p.rating, a.price, p.price
 FROM app_store_apps AS a, play_store_apps AS p
-WHERE a.name=p.name AND a.rating=p.rating AND CAST(a.price AS MONEY)=CAST(p.price AS MONEY);
+WHERE a.name=p.name AND CAST(a.price AS MONEY)=CAST(p.price AS MONEY);
 
 -- SELECT *
 -- FROM left_table
@@ -90,14 +90,80 @@ WHERE rating IS NOT NULL
 GROUP BY name, rating, price, genre
 ORDER BY rating, price;
 
----AS CTE RUNS....Looks INCORRECT
+---AS CTE RUNS....
 WITH app AS (
-SELECT 'app_store' AS store_name,name, rating, CAST(price AS MONEY)
+SELECT DISTINCT (name), 'app_store' AS store_name, rating, CAST(price AS MONEY)
 FROM app_store_apps AS a),
 play AS (
-SELECT 'play_store' AS store_name,name, rating, CAST(price AS MONEY)
+SELECT DISTINCT (name), 'play_store' AS store_name, rating, CAST(price AS MONEY)
 FROM play_store_apps AS p)
-SELECT app.store_name, app.name, app.rating, app.price
-FROM app, play
-WHERE app.name=play.name
+SELECT app.store_name, play.store_name, app.name,play.name, app.rating, play.rating, app.price, play.price
+FROM app
+JOIN play
+ON app.name=play.name AND app.price=play.price
+ORDER BY app.name;
+---AS CTE RUNS.... 
+
+--Attempting to Build Full Table
+SELECT 'app_store' AS store_name,name, CAST(price AS MONEY), rating AS cust_rating, content_rating, primary_genre AS genre
+FROM app_store_apps AS a
+UNION ALL
+SELECT 'play_store' AS store_name,name, CAST(price AS MONEY), rating AS cust_rating, content_rating, genres AS genre
+FROM play_store_apps AS p
 ORDER BY name;
+--returns all rows....18037
+--use above table as subquery in FROM for additional queries????
+
+--Add Purchase Price Column...seth
+SELECT DISTINCT(name), CAST(price AS MONEY),
+	CASE
+		WHEN price > 0 THEN (price * 10000)
+		WHEN price = 0 THEN ('10000')
+		END AS purchase_price
+FROM app_store_apps
+
+SELECT DISTINCT(name), CAST(price AS MONEY),
+	CASE
+		WHEN CAST(price AS MONEY) > CAST('0' AS MONEY) THEN CAST(price AS MONEY) * 10000
+		WHEN CAST (price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
+		END AS purchase_price
+FROM play_store_apps;
+--Add Purchase Price Column...seth
+
+--Attempting to use above built into subquery "table"
+SELECT store_name, name, price, cust_rating,
+CASE
+		WHEN price > CAST('0' AS MONEY) THEN (price * 10000)
+		WHEN price = CAST('0' AS MONEY) THEN ('10000')
+		END AS purchase_price
+FROM 
+(
+SELECT name, 'app_store' AS store_name, CAST(price AS MONEY), rating AS cust_rating, content_rating, primary_genre AS genre
+FROM app_store_apps AS a
+UNION ALL
+SELECT name, 'play_store' AS store_name, CAST(price AS MONEY), rating AS cust_rating, content_rating, genres AS genre
+FROM play_store_apps AS p
+ORDER BY name) AS sub
+ORDER BY name;
+---WITH DISTINCT 16874 ROWS
+---W/O DISTINCT 18037
+
+--GROUP WINNER
+SELECT a.name AS apple_store_apps, p.name AS play_store_apps,
+ ROUND((a.rating+p.rating)/2,2) AS avg_rating,
+		CASE
+			WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
+			WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
+			END AS playstore_purchase_price,
+		CASE
+			WHEN a.price > 0 THEN a.price * 10000::money
+			WHEN a.price = 0 THEN ('10000')::money
+			END AS appstore_purchase_price
+FROM play_store_apps AS p
+INNER JOIN app_store_apps AS a
+ON p.name = a.name
+WHERE a.price<='1' AND a.price<='1'
+GROUP BY p.name,a.name,avg_rating,p.price,a.price
+HAVING ROUND((a.rating+p.rating)/2,2) >= 4
+ORDER BY avg_rating DESC
+LIMIT 15;
