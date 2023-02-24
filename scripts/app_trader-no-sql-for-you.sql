@@ -51,25 +51,6 @@
 -- #### 3. Deliverables
 
 -- a. Develop some general recommendations as to the price range, genre, content rating, or anything else for apps that the company should target.
-
--- (OLD CODE) vvvvvvvv
--- SELECT 
--- 	DISTINCT(name) AS app_name,
--- 	ios.price AS ios_price,
--- 	android.price AS android_price,
--- 	ios.rating AS ios_rating,
--- 	android.rating AS android_rating,
--- 	((ios.rating*0.2)+0.1)*10 AS ios_life_expectancy,
--- 	((android.rating*0.2)+0.1)*10 AS android_life_expectancy
--- FROM app_store_apps AS ios
--- INNER JOIN play_store_apps AS android
--- USING (name)
--- ORDER BY 
--- 	ios.rating DESC, 
--- 	android.rating DESC
--- LIMIT 10;   
--- (OLD CODE) ^^^^^^
-
 -- b. Develop a Top 10 List of the apps that App Trader should buy.
 -- updated 2/18/2023
 
@@ -77,21 +58,30 @@ SELECT
 	a.name AS apple_store_apps,
 	p.name AS play_store_apps, 
 	p.genres, a.content_rating,
- 	ROUND((a.rating + p.rating) / 2, 2) AS avg_rating,
-	(((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10 AS life_expectancy,
+ 	ROUND((a.rating + p.rating), 0)/2 AS avg_rating,
+	(((ROUND((a.rating + p.rating),0)/2) * 0.2) + 0.1) * 10 AS life_expectancy,
 	CASE
 		WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
-		WHEN CAST (p.price AS MONEY) = CAST('0' AS MONEY) THEN ('10000')
+		WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
 		END AS playstore_purchase_price,
 	CASE
-		WHEN a.price > 0 THEN a.price * 10000::money
-		WHEN a.price = 0 THEN ('10000')::money
-		END AS appstore_purchase_price
+		WHEN a.price > 0 THEN a.price * 10000 :: MONEY
+		WHEN a.price = 0 THEN ('10000') :: MONEY
+		END AS appstore_purchase_price,
+	CASE
+		WHEN CAST(p.price AS MONEY) > a.price::MONEY THEN p.price
+		WHEN CAST(p.price AS MONEY) < a.price::MONEY THEN '19900.00'
+		WHEN CAST (p.price AS MONEY) = a.price::MONEY THEN p.price
+		END AS final_purchase_price,
+	(10000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_revenue,
+	((1000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_cost,
+	(((10000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) 
+	 	- (1000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12)) :: MONEY AS expected_profit
 FROM play_store_apps AS p
 INNER JOIN app_store_apps AS a
 ON p.name = a.name
-WHERE a.price <= 1
-AND a.content_rating <> '12+'
+--WHERE a.price <= 1
+--AND a.content_rating <> '12+'
 GROUP BY 
 	p.name,
 	a.name,
@@ -99,19 +89,11 @@ GROUP BY
 	p.price,
 	a.price, 
 	p.genres, 
-	a.content_rating
+	a.content_rating,
+	a.rating,
+	p.rating
 HAVING ROUND((a.rating + p.rating) / 2, 2) >= 4
-ORDER BY avg_rating DESC
+--ORDER BY avg_rating DESC
+ORDER BY expected_profit DESC
 LIMIT 10;
-
--- app_name(same_in_both_stores)	genres				content_rating		avg_rating		life_expectancy		purchase_price(same_from_both_stores)
--- "PewDiePie's Tuber Simulator"	"Casual"			"9+"				4.90			10.800				"$10,000.00"
--- "ASOS"							"Shopping"			"4+"				4.85			10.700				"$10,000.00"
--- "Domino's Pizza USA"				"Food & Drink"		"4+"				4.85			10.700				"$10,000.00"
--- "Egg, Inc."						"Simulation"		"4+"				4.85			10.700				"$10,000.00"	
--- "Geometry Dash Lite"				"Arcade"			"4+"				4.75			10.500				"$10,000.00"	
--- "Fernanfloo"						"Arcade"			"9+"				4.65			10.300				"$10,000.00"	
--- "Bible"							"Books & Reference"	"4+"				4.60			10.200				"$10,000.00"	
--- "Solitaire"						"Card"				"4+"				4.60			10.200				"$10,000.00"	
--- "Toy Blast"						"Puzzle"			"4+"				4.60			10.200				"$10,000.00"	
--- "Angry Birds Blast"				"Puzzle"			"4+"				4.55			10.100				"$10,000.00"	
+	
