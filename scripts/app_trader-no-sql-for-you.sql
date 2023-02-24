@@ -74,13 +74,14 @@
 -- updated 2/18/2023
 
 SELECT 
-	a.name AS apple_store_apps, 
-	p.name AS play_store_apps,
- 	ROUND((a.rating+p.rating)/2,2) AS avg_rating,
+	a.name AS apple_store_apps,
+	p.name AS play_store_apps, 
+	p.genres, a.content_rating,
+ 	ROUND((a.rating + p.rating) / 2, 2) AS avg_rating,
 	(((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10 AS life_expectancy,
 	CASE
 		WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
-		WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
+		WHEN CAST (p.price AS MONEY) = CAST('0' AS MONEY) THEN ('10000')
 		END AS playstore_purchase_price,
 	CASE
 		WHEN a.price > 0 THEN a.price * 10000::money
@@ -90,24 +91,27 @@ FROM play_store_apps AS p
 INNER JOIN app_store_apps AS a
 ON p.name = a.name
 WHERE a.price <= 1
+AND a.content_rating <> '12+'
 GROUP BY 
 	p.name,
 	a.name,
 	avg_rating,
 	p.price,
-	a.price
-HAVING ROUND((a.rating+p.rating)/2,2) >= 4
+	a.price, 
+	p.genres, 
+	a.content_rating
+HAVING ROUND((a.rating + p.rating) / 2, 2) >= 4
 ORDER BY avg_rating DESC
 LIMIT 10;
 
--- app_names(same_across_stores)	avg_rating		life_expectancy(in_years)		purchase_price(same_across_stores)
--- "PewDiePie's Tuber Simulator"	4.90			10.800							"$10,000.00"								
--- "ASOS"							4.85			10.700							"$10,000.00"	
--- "Domino's Pizza USA"				4.85			10.700							"$10,000.00"	
--- "Egg, Inc."						4.85			10.700							"$10,000.00"	
--- "The Guardian"					4.85			10.700							"$10,000.00"	
--- "Geometry Dash Lite"				4.75			10.500							"$10,000.00"	
--- "Fernanfloo"						4.65			10.300							"$10,000.00"	
--- "Bible"							4.60			10.200							"$10,000.00"	
--- "Narcos: Cartel Wars"			4.60			10.200							"$10,000.00"	
--- "Solitaire"						4.60			10.200							"$10,000.00"	
+-- app_name(same_in_both_stores)	genres				content_rating		avg_rating		life_expectancy		purchase_price(same_from_both_stores)
+-- "PewDiePie's Tuber Simulator"	"Casual"			"9+"				4.90			10.800				"$10,000.00"
+-- "ASOS"							"Shopping"			"4+"				4.85			10.700				"$10,000.00"
+-- "Domino's Pizza USA"				"Food & Drink"		"4+"				4.85			10.700				"$10,000.00"
+-- "Egg, Inc."						"Simulation"		"4+"				4.85			10.700				"$10,000.00"	
+-- "Geometry Dash Lite"				"Arcade"			"4+"				4.75			10.500				"$10,000.00"	
+-- "Fernanfloo"						"Arcade"			"9+"				4.65			10.300				"$10,000.00"	
+-- "Bible"							"Books & Reference"	"4+"				4.60			10.200				"$10,000.00"	
+-- "Solitaire"						"Card"				"4+"				4.60			10.200				"$10,000.00"	
+-- "Toy Blast"						"Puzzle"			"4+"				4.60			10.200				"$10,000.00"	
+-- "Angry Birds Blast"				"Puzzle"			"4+"				4.55			10.100				"$10,000.00"	
