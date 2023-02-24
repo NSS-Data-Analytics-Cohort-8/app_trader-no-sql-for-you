@@ -51,11 +51,15 @@
 -- -- #### 3. Deliverables
 
 -- -- a. Develop some general recommendations as to the price range, genre, content rating, or anything else for apps that the company should target.
--- We recommend that the apps that are on both stores, have the highest ratings, and are free on the stores.
+-- - App Purchase Limit <=10k
+-- 	- App Must Reside in Both App and Play Store
+-- 	- Highest AVG Rating availible w/in Purchase Limit
+-- 	- Longest Life Span Based on Highest AVG Rating 
+-- 	- Secondary Conditions: Content Rating >=4+ (Customer Age Diversity), Genre(Portfolio Diversity)
 
 -- -- b. Develop a Top 10 List of the apps that App Trader should buy.
-SELECT a.name AS apple_store_apps, p.name AS play_store_apps,
- ROUND((a.rating+p.rating)/2,2) AS avg_rating,
+SELECT a.name AS apple_store_apps, p.name AS play_store_apps, p.genres, a.content_rating,
+ ROUND((a.rating+p.rating)/2,2) AS avg_rating, (((ROUND((a.rating + p.rating) / 2,2)) * 0.2) + 0.1) * 10 AS life_expectancy,
 		CASE
 			WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
 			WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
@@ -67,8 +71,9 @@ SELECT a.name AS apple_store_apps, p.name AS play_store_apps,
 FROM play_store_apps AS p
 INNER JOIN app_store_apps AS a
 ON p.name = a.name
-WHERE a.price < 1
-GROUP BY p.name,a.name,avg_rating,p.price,a.price
+WHERE a.price <= 1
+AND a.content_rating <> '12+'
+GROUP BY p.name,a.name,avg_rating,p.price,a.price, p.genres, a.content_rating
 HAVING ROUND((a.rating+p.rating)/2,2) >= 4
 ORDER BY avg_rating DESC
 LIMIT 10;
