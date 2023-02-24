@@ -151,6 +151,8 @@ ORDER BY name;
 --GROUP WINNER
 SELECT a.name AS apple_store_apps, p.name AS play_store_apps,
  ROUND((a.rating+p.rating)/2,2) AS avg_rating,
+ RANK() OVER (ORDER BY ROUND((a.rating+p.rating)/2,2) ) AS rank,
+ (((ROUND((a.rating + p.rating) / 2,2 )) * 0.2) + 0.1) * 10 AS life_expectancy,
 		CASE
 			WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
 			WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
@@ -162,8 +164,32 @@ SELECT a.name AS apple_store_apps, p.name AS play_store_apps,
 FROM play_store_apps AS p
 INNER JOIN app_store_apps AS a
 ON p.name = a.name
-WHERE a.price<='1' AND a.price<='1'
-GROUP BY p.name,a.name,avg_rating,p.price,a.price
+WHERE a.price<='1' AND p.price<='1'
+GROUP BY p.name,a.name,avg_rating,p.price,a.price,a.rating, p.rating
 HAVING ROUND((a.rating+p.rating)/2,2) >= 4
 ORDER BY avg_rating DESC
 LIMIT 15;
+
+--GROUP WINNER Update
+SELECT a.name AS apple_store_apps, p.name AS play_store_apps, p.genres, a.content_rating,
+ ROUND((a.rating+p.rating),0)/2 AS avg_rating,
+(((ROUND((a.rating + p.rating),0)/2) * 0.2) + 0.1) * 10 AS life_expectancy,
+		CASE
+			WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
+			WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
+			END AS playstore_purchase_price,
+		CASE
+			WHEN a.price > 0 THEN a.price * 10000::money
+			WHEN a.price = 0 THEN ('10000')::money
+			END AS appstore_purchase_price,
+			(10000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_revenue,
+	((1000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_cost,
+	(((10000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) 
+	 	- (1000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12)) :: MONEY AS expected_profit
+FROM play_store_apps AS p
+INNER JOIN app_store_apps AS a
+ON p.name = a.name
+GROUP BY p.name,a.name,avg_rating,p.price,a.price, p.genres, a.content_rating, a.rating, p.rating
+HAVING ROUND((a.rating+p.rating)/2,2) >= 4
+ORDER BY avg_rating DESC
+LIMIT 10
