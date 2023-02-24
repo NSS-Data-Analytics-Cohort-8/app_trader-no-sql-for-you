@@ -52,24 +52,62 @@
 
 -- a. Develop some general recommendations as to the price range, genre, content rating, or anything else for apps that the company should target.
 
-SELECT 
-	DISTINCT(name) AS app_name,
-	ios.price AS ios_price,
-	android.price AS android_price,
-	ios.rating AS ios_rating,
-	android.rating AS android_rating,
-	((ios.rating*0.2)+0.1)*10 AS ios_life_expectancy,
-	((android.rating*0.2)+0.1)*10 AS android_life_expectancy
-FROM app_store_apps AS ios
-INNER JOIN play_store_apps AS android
-USING (name)
-ORDER BY 
-	ios.rating DESC, 
-	android.rating DESC
-LIMIT 10;
+-- (OLD CODE) vvvvvvvv
+-- SELECT 
+-- 	DISTINCT(name) AS app_name,
+-- 	ios.price AS ios_price,
+-- 	android.price AS android_price,
+-- 	ios.rating AS ios_rating,
+-- 	android.rating AS android_rating,
+-- 	((ios.rating*0.2)+0.1)*10 AS ios_life_expectancy,
+-- 	((android.rating*0.2)+0.1)*10 AS android_life_expectancy
+-- FROM app_store_apps AS ios
+-- INNER JOIN play_store_apps AS android
+-- USING (name)
+-- ORDER BY 
+-- 	ios.rating DESC, 
+-- 	android.rating DESC
+-- LIMIT 10;   
+-- (OLD CODE) ^^^^^^
 
 -- b. Develop a Top 10 List of the apps that App Trader should buy.
-
-
-
 -- updated 2/18/2023
+
+SELECT 
+	a.name AS apple_store_apps, 
+	p.name AS play_store_apps,
+ 	ROUND((a.rating+p.rating)/2,2) AS avg_rating,
+	(((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10 AS life_expectancy,
+	CASE
+		WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
+		WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
+		END AS playstore_purchase_price,
+	CASE
+		WHEN a.price > 0 THEN a.price * 10000::money
+		WHEN a.price = 0 THEN ('10000')::money
+		END AS appstore_purchase_price
+FROM play_store_apps AS p
+INNER JOIN app_store_apps AS a
+ON p.name = a.name
+WHERE a.price <= 1
+GROUP BY 
+	p.name,
+	a.name,
+	avg_rating,
+	p.price,
+	a.price
+HAVING ROUND((a.rating+p.rating)/2,2) >= 4
+ORDER BY avg_rating DESC
+LIMIT 10;
+
+-- app_names(same_across_stores)	avg_rating		life_expectancy(in_years)		purchase_price(same_across_stores)
+-- "PewDiePie's Tuber Simulator"	4.90			10.800							"$10,000.00"								
+-- "ASOS"							4.85			10.700							"$10,000.00"	
+-- "Domino's Pizza USA"				4.85			10.700							"$10,000.00"	
+-- "Egg, Inc."						4.85			10.700							"$10,000.00"	
+-- "The Guardian"					4.85			10.700							"$10,000.00"	
+-- "Geometry Dash Lite"				4.75			10.500							"$10,000.00"	
+-- "Fernanfloo"						4.65			10.300							"$10,000.00"	
+-- "Bible"							4.60			10.200							"$10,000.00"	
+-- "Narcos: Cartel Wars"			4.60			10.200							"$10,000.00"	
+-- "Solitaire"						4.60			10.200							"$10,000.00"	
