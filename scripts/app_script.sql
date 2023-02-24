@@ -58,8 +58,13 @@
 -- 	- Secondary Conditions: Content Rating >=4+ (Customer Age Diversity), Genre(Portfolio Diversity)
 
 -- -- b. Develop a Top 10 List of the apps that App Trader should buy.
-SELECT a.name AS apple_store_apps, p.name AS play_store_apps, p.genres, a.content_rating,
- ROUND((a.rating+p.rating)/2,2) AS avg_rating, (((ROUND((a.rating + p.rating) / 2,2)) * 0.2) + 0.1) * 10 AS life_expectancy,
+
+SELECT 
+a.name AS apple_store_apps, 
+p.name AS play_store_apps, 
+p.genres, 
+a.content_rating,
+ROUND((a.rating+p.rating)/2,2) AS avg_rating, (((ROUND((a.rating + p.rating) / 2,2)) * 0.2) + 0.1) * 10 AS life_expectancy,
 		CASE
 			WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
 			WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
@@ -67,19 +72,26 @@ SELECT a.name AS apple_store_apps, p.name AS play_store_apps, p.genres, a.conten
 		CASE
 			WHEN a.price > 0 THEN a.price * 10000::money
 			WHEN a.price = 0 THEN ('10000')::money
-			END AS appstore_purchase_price
+			END AS appstore_purchase_price,
+	(10000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_revenue,
+	((1000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_cost,
+	(((10000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) 
+	 	- (1000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12)) :: MONEY AS expected_profit
 FROM play_store_apps AS p
 INNER JOIN app_store_apps AS a
 ON p.name = a.name
 WHERE a.content_rating <> '12+'
 GROUP BY p.name,a.name,avg_rating,p.price,a.price, p.genres, a.content_rating
 HAVING ROUND((a.rating+p.rating)/2,2) >= 4
-ORDER BY avg_rating DESC
+ORDER BY expected_revenue DESC
 LIMIT 10;
 
-SELECT a.name AS apple_store_apps, p.name AS play_store_apps,
- ROUND((a.rating+p.rating)/2,2) AS avg_rating, (((ROUND((a.rating + p.rating) / 2,2)) * 0.2) + 0.1) * 10 AS life_expectancy, 
- ((((((ROUND((a.rating + p.rating) / 2,2)) * 0.2) + 0.1) * 10 * 12)*5000)-((((((ROUND((a.rating + p.rating) / 2,2)) * 0.2) + 0.1) * 10 * 12)-1000)) - (playstore_purchase_price)) AS total_revenue,
+
+--Old Code Below
+SELECT 
+	a.name AS apple_store_apps,
+	p.name AS play_store_apps,
+ 	ROUND((a.rating+p.rating)/2,2) AS avg_rating, (((ROUND((a.rating + p.rating) / 2,2)) * 0.2) + 		0.1)* 10 AS life_expectancy, 
 		CASE
 			WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
 			WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
@@ -93,11 +105,11 @@ INNER JOIN app_store_apps AS a
 ON p.name = a.name
 GROUP BY p.name,a.name,avg_rating,p.price,a.price, p.genres, a.content_rating
 HAVING ROUND((a.rating+p.rating)/2,2) >= 4
-ORDER BY total_revenue DESC
+
 LIMIT 10
 
 
---Old Code Below
+
 
 SELECT name, 'play_store' AS store_name, CAST(rating AS NUMERIC), CAST(price AS MONEY), genres AS genre 
 FROM play_store_apps AS p
