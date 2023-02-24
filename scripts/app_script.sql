@@ -19,10 +19,6 @@
 -- --     - `app_store_apps` with 7197 rows  
 -- --     - `play_store_apps` with 10840 rows
 
-SELECT * FROM app_store_apps
-
-SELECT * FROM play_store_apps
-
 -- -- #### 2. Assumptions
 
 -- -- Based on research completed prior to launching App Trader as a company, you can assume the following:
@@ -55,12 +51,29 @@ SELECT * FROM play_store_apps
 -- -- #### 3. Deliverables
 
 -- -- a. Develop some general recommendations as to the price range, genre, content rating, or anything else for apps that the company should target.
-
-
-
-
+-- We recommend that the apps that are on both stores, have the highest ratings, and are free on the stores.
 
 -- -- b. Develop a Top 10 List of the apps that App Trader should buy.
+SELECT a.name AS apple_store_apps, p.name AS play_store_apps,
+ ROUND((a.rating+p.rating)/2,2) AS avg_rating,
+		CASE
+			WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
+			WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
+			END AS playstore_purchase_price,
+		CASE
+			WHEN a.price > 0 THEN a.price * 10000::money
+			WHEN a.price = 0 THEN ('10000')::money
+			END AS appstore_purchase_price
+FROM play_store_apps AS p
+INNER JOIN app_store_apps AS a
+ON p.name = a.name
+WHERE a.price < 1
+GROUP BY p.name,a.name,avg_rating,p.price,a.price
+HAVING ROUND((a.rating+p.rating)/2,2) >= 4
+ORDER BY avg_rating DESC
+LIMIT 10;
+
+--Old Code Below
 
 SELECT name, 'play_store' AS store_name, CAST(rating AS NUMERIC), CAST(price AS MONEY), genres AS genre 
 FROM play_store_apps AS p
@@ -74,31 +87,20 @@ WHERE rating IS NOT NULL
 GROUP BY name, rating, price, genre
 ORDER BY rating, price;
 
-
-
 SELECT 'app_store' AS store_name,name, rating, CAST(price AS MONEY)
 FROM app_store_apps
 UNION ALL
 SELECT 'play_store' AS store_name,name, rating, CAST(price AS MONEY)
 FROM play_store_apps;
 
-
-
-
-
 SELECT a.name AS apple_name, p.name AS playstore_name, a.rating AS apple_rating, p.rating AS playstore_rating, a.price AS apple_price, p.price AS playstore_price
 FROM app_store_apps AS a, play_store_apps AS p
 WHERE a.name=p.name AND a.rating=p.rating AND CAST(a.price AS MONEY)=CAST(p.price AS MONEY);
-
 
 SELECT DISTINCT(a.name) AS apple_name, DISTINCT(p.name) AS playstore_name, a.rating AS apple_rating, p.rating AS playstore_rating, a.price AS apple_price, p.price AS playstore_price
 FROM app_store_apps AS a, play_store_apps AS p
 WHERE a.name=p.name AND a.rating=p.rating AND CAST(a.price AS MONEY)=CAST(p.price AS MONEY);
 
-
-
 LIMIT 10
-
-
 
 -- -- updated 2/18/2023
