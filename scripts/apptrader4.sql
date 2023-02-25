@@ -46,3 +46,4 @@ INNER JOIN play_store_apps AS p
 ON app_trader_table.play_store_apps = p.name
 GROUP BY a.name, appstore_purchase_price, playstore_purchase_price, final_purchase_price, avg_rating, life_expectancy, a.rating, p.rating
 ORDER BY expected_profit DESC
+LIMIT 10
