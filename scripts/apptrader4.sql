@@ -7,14 +7,14 @@ WITH app_trader_table AS
     ROUND(((a.rating + p.rating) / 2)*2/2) AS avg_rating,
     ROUND((((a.rating + p.rating)/2)* 0.2) + 0.1,1)* 10 AS life_expectancy,
     CASE
-        WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
-        WHEN CAST (p.price AS MONEY)= CAST('0' AS MONEY) THEN ('10000')
+    WHEN CAST(p.price AS MONEY) > CAST('0' AS MONEY) THEN CAST(p.price AS MONEY) * 10000
+    WHEN CAST(p.price AS MONEY) = CAST('0' AS MONEY) THEN CAST('10000' AS MONEY)
     END AS playstore_purchase_price,
     CASE
-        WHEN a.price > 0 THEN a.price * 10000 :: MONEY
-        WHEN a.price = 0 THEN ('10000') :: MONEY
+    WHEN a.price > 0 THEN CAST(a.price * 10000 AS MONEY)
+    WHEN a.price = 0 THEN CAST('10000' AS MONEY)
     END AS appstore_purchase_price,
-    COALESCE(
+     COALESCE(
         GREATEST(CAST(CAST(p.price AS money)*10000 AS NUMERIC),a.price * 10000),'10000')::money 
         AS final_purchase_price
 FROM play_store_apps AS p
@@ -33,20 +33,21 @@ GROUP BY
 HAVING ROUND((a.rating + p.rating) / 2, 2) >= 4
 ORDER BY avg_rating DESC)
 
-SELECT a.name, avg_rating, life_expectancy,
+SELECT appstore_purchase_price, playstore_purchase_price, final_purchase_price, a.name, avg_rating, life_expectancy,
 	(final_purchase_price * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_revenue,
-	(final_purchase_price * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_cost,
+	(1000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_cost,
 	
 	(final_purchase_price * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12)
-	- (final_purchase_price * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12):: MONEY AS expected_profit
+	- (1000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12):: MONEY AS expected_profit
 FROM app_trader_table
 INNER JOIN app_store_apps AS a 
 ON app_trader_table.apple_store_apps = a.name
 INNER JOIN play_store_apps AS p 
-ON app_trader_table.play_store_apps = p.name;
+ON app_trader_table.play_store_apps = p.name
+GROUP BY a.name, appstore_purchase_price, playstore_purchase_price, final_purchase_price, avg_rating, life_expectancy, a.rating, p.rating
+ORDER BY expected_profit DESC
+LIMIT 10;
 
---calculations
-	--(10000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_revenue,
-	--((1000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12) :: MONEY AS expected_cost,
-	--(((10000 * (((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12)
-	-- 	- (1000 * ((((ROUND((a.rating + p.rating) / 2, 2)) * 0.2) + 0.1) * 10) * 12)) :: MONEY AS expected_profit
+
+
+
