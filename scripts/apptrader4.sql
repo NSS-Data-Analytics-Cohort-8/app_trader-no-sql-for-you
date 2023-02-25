@@ -1,4 +1,3 @@
-
 WITH app_trader_table AS
 (SELECT
     a.name AS apple_store_apps,
@@ -14,9 +13,10 @@ WITH app_trader_table AS
     WHEN a.price > 0 THEN CAST(a.price * 10000 AS MONEY)
     WHEN a.price = 0 THEN CAST('10000' AS MONEY)
     END AS appstore_purchase_price,
-     COALESCE(
-        GREATEST(CAST(CAST(p.price AS money)*10000 AS NUMERIC),a.price * 10000),'10000')::money 
-        AS final_purchase_price
+     CASE
+        WHEN a.price = 0 AND CAST(p.price AS MONEY) = CAST('0' AS MONEY) THEN CAST('10000' AS MONEY)
+        ELSE COALESCE(GREATEST(CAST(CAST(p.price AS money)*10000 AS NUMERIC),a.price * 10000),'10000')::money 
+     END AS final_purchase_price
 FROM play_store_apps AS p
 INNER JOIN app_store_apps AS a
 ON p.name = a.name
@@ -46,8 +46,3 @@ INNER JOIN play_store_apps AS p
 ON app_trader_table.play_store_apps = p.name
 GROUP BY a.name, appstore_purchase_price, playstore_purchase_price, final_purchase_price, avg_rating, life_expectancy, a.rating, p.rating
 ORDER BY expected_profit DESC
-LIMIT 10;
-
-
-
-
